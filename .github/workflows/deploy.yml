@@ -1,0 +1,39 @@
+name: Deploy React to deploy branch
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repositório
+        uses: actions/checkout@v3
+
+      - name: Instalar Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Instalar dependências
+        run: npm install
+        working-directory: ./estoque-frontend
+
+      - name: Build do projeto
+        run: npm run build
+        working-directory: ./estoque-frontend
+
+      - name: Deploy para branch deploy
+        run: |
+          cd estoque-frontend
+
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          git checkout --orphan deploy
+          git --work-tree=dist add --all
+          git --work-tree=dist commit -m "Deploy automático"
+          git push origin HEAD:deploy --force
