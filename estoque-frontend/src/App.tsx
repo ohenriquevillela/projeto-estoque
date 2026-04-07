@@ -28,8 +28,8 @@ function App() {
     const prepararEdicao = (p: Produto) => {
         setIdEditando(p.id);
         setNovoNome(p.nome);
-        setNovoPreco(Number(p.preco));
-        setNovaQuantidade(Number(p.quantidade));
+        setNovoPreco(String(p.preco));
+        setNovaQuantidade(p.quantidade);
     };
 
     useEffect(() => {
@@ -37,14 +37,14 @@ function App() {
     }, [])
 
     const handleSalvar = () => {
-        if (!novoNome || novoPreco <= 0 || novaQuantidade < 0) {
+        if (!novoNome || Number(novoPreco) <= 0 || novaQuantidade < 0) {
             toast.error("Preencha os dados corretamente!");
             return;
         }
 
         const dados = {
             nome: novoNome,
-            preco: novoPreco,
+            preco: Number(novoPreco),
             quantidade: novaQuantidade
         };
 
@@ -70,7 +70,7 @@ function App() {
     const limparFormulario = () => {
         setIdEditando(null);
         setNovoNome('');
-        setNovoPreco(0);
+        setNovoPreco('');
         setNovaQuantidade(0);
     };
 
