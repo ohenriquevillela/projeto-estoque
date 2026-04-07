@@ -3,6 +3,9 @@ import react from '@vitejs/plugin-react-swc' // Esse é o cara que deu erro na f
 import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
+
+  base: '/projeto-estoque/',
+
   plugins: [
     react(),
     tailwindcss(),
