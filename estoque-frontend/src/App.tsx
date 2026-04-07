@@ -1,12 +1,23 @@
 import { useEffect, useState } from 'react'
+import { Pencil, Trash2 } from 'lucide-react';
+import { Toaster, toast } from 'react-hot-toast';
 import axios from 'axios'
 
+type Produto = {
+    id: number;
+    nome: string;
+    preco: number;
+    quantidade: number;
+};
+
 function App() {
-    const [produtos, setProdutos] = useState<any[]>([])
+    const [produtos, setProdutos] = useState<Produto[]>([])
     const [novoNome, setNovoNome] = useState('')
-    const [novoPreco, setNovoPreco] = useState(0)
-    const [novaQuantidade, setNovaQuantidade] = useState(0)
+    const [novoPreco, setNovoPreco] = useState('')
+    const [novaQuantidade, setNovaQuantidade] = useState<number>(0)
     const [idEditando, setIdEditando] = useState<number | null>(null);
+    const [modalAberto, setModalAberto] = useState(false);
+    const [produtoParaExcluir, setProdutoParaExcluir] = useState<number | null>(null);
 
     const buscarProdutos = () => {
         axios.get('http://localhost:8081/produtos')
@@ -14,11 +25,11 @@ function App() {
             .catch(err => console.error(err))
     }
 
-    const prepararEdicao = (p: any) => {
+    const prepararEdicao = (p: Produto) => {
         setIdEditando(p.id);
         setNovoNome(p.nome);
-        setNovoPreco(p.preco);
-        setNovaQuantidade(p.quantidade);
+        setNovoPreco(Number(p.preco));
+        setNovaQuantidade(Number(p.quantidade));
     };
 
     useEffect(() => {
@@ -26,22 +37,29 @@ function App() {
     }, [])
 
     const handleSalvar = () => {
-        const dados = { nome: novoNome, preco: novoPreco, quantidade: novaQuantidade };
+        if (!novoNome || novoPreco <= 0 || novaQuantidade < 0) {
+            toast.error("Preencha os dados corretamente!");
+            return;
+        }
 
-        if (idEditando) {
-            // Modo Edição: Usa o PUT
+        const dados = {
+            nome: novoNome,
+            preco: novoPreco,
+            quantidade: novaQuantidade
+        };
+
+        if (idEditando !== null) {
             axios.put(`http://localhost:8081/produtos/${idEditando}`, dados)
                 .then(() => {
-                    alert("Produto atualizado!");
+                    toast.success("Produto atualizado!");
                     limparFormulario();
                     buscarProdutos();
                 })
                 .catch(err => console.error("Erro ao editar:", err));
         } else {
-            // Modo Cadastro: Usa o POST
             axios.post('http://localhost:8081/produtos', dados)
                 .then(() => {
-                    alert("Salvo!");
+                    toast.success("Produto salvo!");
                     limparFormulario();
                     buscarProdutos();
                 })
@@ -56,43 +74,77 @@ function App() {
         setNovaQuantidade(0);
     };
 
-    const handleExcluir = (id: number) => {
-        if (window.confirm("Tem certeza que deseja excluir este item?")) {
-            axios.delete(`http://localhost:8081/produtos/${id}`)
-                .then(() => {
-                    alert("Item removido!");
-                    buscarProdutos(); // Atualiza a lista automaticamente
-                })
-                .catch(error => {
-                    console.error(error);
-                    alert("Erro ao excluir. Verifique se o produto relmente existe.");
-                });
-        }
+    const confirmarExclusao = () => {
+        if (produtoParaExcluir === null) return;
+
+        axios.delete(`http://localhost:8081/produtos/${produtoParaExcluir}`)
+            .then(() => {
+                toast.success("Item removido!");
+                buscarProdutos();
+            })
+            .catch(() => {
+                toast.error("Erro ao excluir.");
+            });
+
+        setModalAberto(false);
+        setProdutoParaExcluir(null);
     };
 
     return (
         <div className="min-h-screen bg-gray-900 text-white p-8 font-sans">
-            <h1 className="text-3xl font-bold mb-8 border-b-2 border-blue-500 pb-2">Estoque 📦</h1>
+            <Toaster position="top-right" />
+
+            <h1 className="text-3xl font-bold mb-8 border-b-2 border-blue-500 pb-2">
+                Estoque 📦
+            </h1>
 
             <section className="bg-gray-800 p-6 rounded-xl mb-8 border border-gray-700 shadow-lg">
-                <h2 className="text-xl font-semibold mb-4 text-blue-400 text-left">Cadastrar Novo Item</h2>
+                <h2 className="text-xl font-semibold mb-4 text-blue-400 text-left">
+                    {idEditando !== null ? 'Editar Produto' : 'Cadastrar Novo Item'}
+                </h2>
+
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <input type="text" placeholder="Nome" className="bg-gray-700 border border-gray-600 p-2 rounded outline-none" onChange={(e) => setNovoNome(e.target.value)} />
-                    <input type="number" placeholder="Preço" className="bg-gray-700 border border-gray-600 p-2 rounded outline-none" onChange={(e) => setNovoPreco(Number(e.target.value))} />
-                    <input type="number" placeholder="Qtd" className="bg-gray-700 border border-gray-600 p-2 rounded outline-none" onChange={(e) => setNovaQuantidade(Number(e.target.value))} />
-                    <button onClick={handleSalvar} className="bg-blue-600 hover:bg-blue-700 font-bold py-2 px-4 rounded transition">{idEditando ? 'Atualizar Produto' : 'Salvar no Estoque'}</button>
-                    {/* BOTÃO DE CANCELAR (CONDICIONAL) */}
-                    {idEditando && (
+                    <input
+                        type="text"
+                        placeholder="Nome"
+                        value={novoNome}
+                        className="bg-gray-700 border border-gray-600 p-2 rounded outline-none"
+                        onChange={(e) => setNovoNome(e.target.value)}
+                    />
+
+                    <input
+                        type="number"
+                        placeholder="Preço"
+                        value={novoPreco}
+                        className="bg-gray-700 border border-gray-600 p-2 rounded outline-none"
+                        onChange={(e) => setNovoPreco(e.target.value)}
+                    />
+
+                    <input
+                        type="number"
+                        placeholder="Qtd"
+                        value={novaQuantidade}
+                        className="bg-gray-700 border border-gray-600 p-2 rounded outline-none"
+                        onChange={(e) => setNovaQuantidade(Number(e.target.value))}
+                    />
+
+                    <button
+                        onClick={handleSalvar}
+                        className="bg-blue-600 hover:bg-blue-700 font-bold py-2 px-4 rounded transition"
+                    >
+                        {idEditando !== null ? 'Atualizar Produto' : 'Salvar no Estoque'}
+                    </button>
+
+                    {idEditando !== null && (
                         <button
                             onClick={limparFormulario}
-                            className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded transition ml-2"
+                            className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded transition"
                         >
                             Cancelar
                         </button>
                     )}
                 </div>
             </section>
-
 
             <main className="bg-gray-800 rounded-xl shadow-xl overflow-hidden border border-gray-700">
                 <table className="w-full text-left">
@@ -104,24 +156,33 @@ function App() {
                         <th className="px-6 py-4 text-center">Ações</th>
                     </tr>
                     </thead>
+
                     <tbody className="divide-y divide-gray-700">
-                    {produtos.map((p: any) => (
+                    {produtos.map((p) => (
                         <tr key={p.id} className="hover:bg-gray-750">
                             <td className="px-6 py-4">{p.nome}</td>
-                            <td className="px-6 py-4">R$ {p.preco.toFixed(2)}</td>
-                            <td className="px-6 py-4 text-right">{p.quantidade}</td>
+                            <td className="px-6 py-4">
+                                R$ {Number(p.preco).toFixed(2)}
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                                {p.quantidade}
+                            </td>
                             <td className="px-6 py-4 text-center space-x-2">
                                 <button
                                     onClick={() => prepararEdicao(p)}
                                     className="text-blue-400 hover:text-blue-300 font-bold"
                                 >
-                                    Editar
+                                    <Pencil size={16} />
                                 </button>
+
                                 <button
-                                    onClick={() => handleExcluir(p.id)}
+                                    onClick={() => {
+                                        setProdutoParaExcluir(p.id);
+                                        setModalAberto(true);
+                                    }}
                                     className="text-red-500 hover:text-red-400 font-bold"
                                 >
-                                    Excluir
+                                    <Trash2 size={16} />
                                 </button>
                             </td>
                         </tr>
@@ -129,6 +190,38 @@ function App() {
                     </tbody>
                 </table>
             </main>
+
+            {modalAberto && (
+                <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+                    <div className="bg-gray-800 p-6 rounded-xl shadow-xl border border-gray-700 w-96">
+
+                        <h2 className="text-lg font-bold mb-4 text-red-400">
+                            Confirmar exclusão
+                        </h2>
+
+                        <p className="text-gray-300 mb-6">
+                            Tem certeza que deseja excluir este item?
+                        </p>
+
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setModalAberto(false)}
+                                className="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded"
+                            >
+                                Cancelar
+                            </button>
+
+                            <button
+                                onClick={confirmarExclusao}
+                                className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded font-bold"
+                            >
+                                Excluir
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </div>
     )
 }
