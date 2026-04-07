@@ -20,19 +20,20 @@ jobs:
 
       - name: Instalar dependências
         run: npm install
+        working-directory: ./estoque-frontend
 
       - name: Build do projeto
         run: npm run build
+        working-directory: ./estoque-frontend
 
       - name: Deploy para branch deploy
         run: |
+          cd estoque-frontend
+
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Pega apenas o conteúdo da dist
           git checkout --orphan deploy
           git --work-tree=dist add --all
           git --work-tree=dist commit -m "Deploy automático"
-
-          # Força push para branch deploy
           git push origin HEAD:deploy --force
