@@ -20,7 +20,8 @@ function App() {
     const [produtoParaExcluir, setProdutoParaExcluir] = useState<number | null>(null);
 
     const buscarProdutos = () => {
-        axios.get('http://localhost:8081/produtos')
+        axios.get('https://projeto-estoque-production.up.railway.app/produtos')
+            
             .then(res => setProdutos(res.data))
             .catch(err => console.error(err))
     }
